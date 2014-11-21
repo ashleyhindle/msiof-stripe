@@ -63,16 +63,13 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 								}
 
 								\Stripe::setApiKey('sk_test_26P4i0fynum9NZWXomS2wlTd');
-								$customer = \Stripe_Customer::create([
-										  'email' => $request->get('stripeEmail'),
-										  'card'  => $request->get('stripeToken')
-								]);
-
-								$app['user']->setCustomField('stripe_customer_id', $customer->id);
-								$app['user.manager']->update($app['user']);
+								$customerId = $app['user']->getCustomField('stripe_customer_id');
+								if (empty($customerId)) {
+										  $app['session']->getFlashBag()->set('alert', 'Something went wrong.  Please get in touch - <a href="mailto:somethingwentwrong@myserverisonfire.com">somethingwentwrong@myserverisonfire.com</a>');
+								}
 
 								$charge = \Stripe_Charge::create([
-										  'customer' => $customer->id,
+										  'customer' => $customerId,
 										  'amount'   => 2000,
 										  'currency' => 'gbp'
 								]);
