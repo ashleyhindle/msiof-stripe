@@ -10,7 +10,7 @@ use SimpleUser\UserEvents;
 use SimpleUser\UserEvent;
 
 /**
- * Class: MsiofStripeServiceProvider
+ * Class: MsiofStripeControllerProvider
  *
  * @see Silex\ControllerProviderInterface
  */
@@ -62,7 +62,7 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 										  return $app->redirect('user.login');
 								}
 
-								\Stripe::setApiKey('sk_test_26P4i0fynum9NZWXomS2wlTd');
+								\Stripe::setApiKey($app['msiof.stripe']['keys']['secret']);
 								$customerId = $app['user']->getCustomField('stripe_customer_id');
 								if (empty($customerId)) {
 										  $app['session']->getFlashBag()->set('alert', 'Something went wrong.  Please get in touch - <a href="mailto:somethingwentwrong@myserverisonfire.com">somethingwentwrong@myserverisonfire.com</a>');
