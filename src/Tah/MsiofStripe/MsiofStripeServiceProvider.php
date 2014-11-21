@@ -15,6 +15,16 @@ use Silex\ServiceControllerResolver;
  */
 class MsiofStripeServiceProvider implements ServiceProviderInterface, ControllerProviderInterface
 {
+		  public function register(Application $app)
+		  {
+
+		  }
+
+		  public function boot(Application $app)
+		  {
+
+		  }
+
 		  /**
 		  * connect
 		  *
