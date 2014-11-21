@@ -42,13 +42,15 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 								<script
 								src="https://checkout.stripe.com/checkout.js" class="stripe-button"
 								data-key="pk_test_2bpghGfYvZb4cS2rYIhpcC31"
-								data-amount="2000"
-								data-name="Unlimited MSIOF"
-								data-description="Unlimited (&pound; 20/month)"
+								data-amount="0"
+								data-name="Upgrade Plan"
+								data-description="More Server Fires ($3/server/month)"
 								data-image="/128x128.png"
-								data-currency="GBP"
+								data-currency="USD"
 								data-allowrememberme="false"
 								data-email="ashley@smellynose.com"
+								data-panelLabel="Subscribe"
+								data-label="Subscribe"
 								>
 								</script>
 								</form>
@@ -66,17 +68,35 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 								$customerId = $app['user']->getCustomField('stripe_customer_id');
 								if (empty($customerId)) {
 										  $app['session']->getFlashBag()->set('alert', 'Something went wrong.  Please get in touch - <a href="mailto:somethingwentwrong@myserverisonfire.com">somethingwentwrong@myserverisonfire.com</a>');
+
+										  return $app->redirect('/');
 								}
 
-								$charge = \Stripe_Charge::create([
-										  'customer' => $customerId,
-										  'amount'   => 2000,
-										  'currency' => 'gbp'
-								]);
+								$subscriptionId = $app['user']->getCustomField('stripe_subscription_id');
+								if (!empty($subscriptionId)) {
+										  $app['session']->getFlashBag()->set('alert', 'You are already subscribed, what ya playing at?');
 
-								var_dump($charge);
+										  return $app->redirect('/dashboard');
+								}
 
-								return print_r($_POST, true);
+								try {
+										  $cu = \Stripe_Customer::retrieve($customerId);
+										  $result = $cu->subscriptions->create([
+													 "plan" => $app['msiof.stripe']['plan'],
+													 "card" => $request->get('stripeToken'),
+													 "quantity" => 26
+										  ]);
+								} catch (Exception $e) {
+										  $app['session']->getFlashBag()->set('alert', 'Something went wrong.  Please get in touch - <a href="mailto:somethingwentwrong@myserverisonfire.com">somethingwentwrong@myserverisonfire.com</a>');
+
+										  return $app->redirect('/');
+								}
+
+								$subscriptionId = $result->id;
+								$app['user']->setCustomField('stripe_subscription_id', $subscriptionId);
+								$app['user.manager']->update($app['user']);
+
+								return "Subscription id: {$result['id']}";
 					 })->bind('msiof-stripe-pay-post');
 
 					 $controllers->post('/webhook', function(Application $app, Request $request) {
