@@ -32,21 +32,38 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 								return 'It works';
 					 })->bind('msiof-stripe-index');
 
-					 $controllers->get('/pay', function (Application $app) {
+					 $controllers->get('/unsubscribe', function (Application $app) {
+								\Stripe::setApiKey($app['msiof.stripe']['keys']['secret']);
+								$currentPlan = $app['user']->getCustomField('stripe_current_plan');
+								if ($currentPlan != $app['msiof.stripe']['plans']['paid']) {
+										 return 'You aren\'t subscribed anyway, so you can\'t unsubscribe';
+								}
+
+								try {
+										  $customer = \Stripe_Customer::retrieve($app['user']->getCustomField('stripe_customer_id'));
+										  $result = $customer->subscriptions->retrieve($app['user']->getCustomField('stripe_subscription_id_paid'))->cancel();
+								} catch (Exception $e) {
+										  return 'Something went wrong, sorry';
+								}
+
+								$app['session']->getFlashBag()->set('alert-success', 'You are now unsubscribed, but why? :(');
+
+								return $app->redirect('/stripe/account');
+					 })->bind('msiof-stripe-unsubscribe');
+
+					 $controllers->get('/account', function (Application $app) {
 								if (!$app['user']) {
 										  return $app->redirect('user.login');
 								}
 
 								$subscriptionId = $app['user']->getCustomField('stripe_subscription_id_paid');
 								if (!empty($subscriptionId)) {
-										  $app['session']->getFlashBag()->set('alert', 'You are already subscribed, what ya playing at?');
-
-										  return $app->redirect('/dashboard');
+										  return '<a href="/stripe/unsubscribe">Unsubscribe</a>';
 								}
 
 								$serverCount = 26;
 								$form = '
-								<form action="" method="POST">
+								<form action="/stripe/upgrade" method="POST">
 								<script
 								src="https://checkout.stripe.com/checkout.js" class="stripe-button"
 								data-key="pk_test_2bpghGfYvZb4cS2rYIhpcC31"
@@ -67,7 +84,7 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 								return $form;
 					 })->bind('msiof-stripe-pay-form');
 
-					 $controllers->post('/pay', function(Application $app, Request $request) {
+					 $controllers->post('/upgrade', function(Application $app, Request $request) {
 								if (!$app['user']) {
 										  return $app->redirect('user.login');
 								}
@@ -119,10 +136,18 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 										  ]);
 
 										  $result = $subscription->save();
+								} catch (Stripe_CardError $e) {
+										  $body = $e->getJsonBody();
+										  $err  = $body['error'];
+										  $app['session']->getFlashBag()->set('alert', 'Something was wrong with your card [' . $err['message'] . '].  Please try again.');
+								} catch (Stripe_Error $e) {
+										  $app['session']->getFlashBag()->set('alert', 'Something went wrong.  Please get in touch at somethingwentwrong@myserverisonfire.com');
+
+										  return $app->redirect('/dashboard');
 								} catch (Exception $e) {
 										  $app['session']->getFlashBag()->set('alert', 'Something went wrong.  Please get in touch at somethingwentwrong@myserverisonfire.com');
 
-										  return $app->redirect('/');
+										  return $app->redirect('/dashboard');
 								}
 
 								$subscriptionId = $result->id;
@@ -134,7 +159,7 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 
 								$app['session']->getFlashBag()->set('alert-success', 'You are now upgraded! Congrats!');
 
-								return $app->redirect('/dashboard');
+								return $app->redirect('/stripe/account');
 					 })->bind('msiof-stripe-pay-post');
 
 					 $controllers->post('/webhook', function(Application $app, Request $request) {
@@ -161,6 +186,7 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 													 //@TODO: Email to say payment failed
 										  } elseif ($data['type'] == 'customer.subscription.deleted') {
 													 //@TODO: They should only be able to cancel paid subscription, so set stripe_current_plan to 'free', and remove paid subscription id
+													 //@TODO: Get user instance - findOneBy?
 										  }
 								}
 
