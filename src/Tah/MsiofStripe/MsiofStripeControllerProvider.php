@@ -42,6 +42,7 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 								try {
 										  $customer = \Stripe_Customer::retrieve($app['user']->getCustomField('stripe_customer_id'));
 										  $result = $customer->subscriptions->retrieve($app['user']->getCustomField('stripe_subscription_id_paid'))->cancel();
+										  $app['user']->setCustomField('stripe_subscription_awaiting_cancellation', true);
 								} catch (Exception $e) {
 										  return 'Something went wrong, sorry';
 								}
@@ -58,7 +59,11 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 
 								$subscriptionId = $app['user']->getCustomField('stripe_subscription_id_paid');
 								if (!empty($subscriptionId)) {
-										  return '<a href="/stripe/unsubscribe">Unsubscribe</a>';
+										  if ($app['user']->getCustomField('stripe_subscription_awaiting_cancellation')) {
+													 return 'Your subscriptoin is cancelled';
+										  } else {
+													 return '<a href="/stripe/unsubscribe">Unsubscribe</a>';
+										  }
 								}
 
 								$serverCount = 26;
@@ -171,7 +176,7 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 													 return "Ignoring because it's the free plan";
 										  }
 
-										  if($data['type'] == 'invoice.created') {
+										  if ($data['type'] == 'invoice.created') {
 													 $customerId = $data['data']['object']['customer'];
 													 $invoiceId = $data['data']['object']['id'];
 													 \Stripe_InvoiceItem::create([
@@ -187,6 +192,7 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 										  } elseif ($data['type'] == 'customer.subscription.deleted') {
 													 //@TODO: They should only be able to cancel paid subscription, so set stripe_current_plan to 'free', and remove paid subscription id
 													 //@TODO: Get user instance - findOneBy?
+													 //@TODO: Remove stripe_subscription_awaiting_cancellation too
 										  }
 								}
 
