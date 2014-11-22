@@ -67,7 +67,7 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 								$subscriptionId = $app['user']->getCustomField('stripe_subscription_id_paid');
 								if (!empty($subscriptionId)) {
 										  if ($app['user']->getCustomField('stripe_subscription_awaiting_cancellation')) {
-													 return 'Your subscriptoin is cancelled';
+													 return 'Your subscription is cancelled';
 										  } else {
 													 return '<a href="/stripe/unsubscribe">Unsubscribe</a>';
 										  }
