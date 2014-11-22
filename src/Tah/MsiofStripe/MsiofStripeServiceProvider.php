@@ -46,8 +46,18 @@ class MsiofStripeServiceProvider implements ServiceProviderInterface
 								$user = $event->getUser();
 								$customer = \Stripe_Customer::create([
 										  'email' => $user->getEmail(),
+										  'metadata' => [
+													 'userid' => $user->getId()
+										  ]
 								]);
+
+								$subscription = $customer->subscriptions->create([
+										  "plan" => $app['msiof.stripe']['plans']['free']
+								]);
+
 								$user->setCustomField('stripe_customer_id', $customer->id);
+								$user->setCustomField('stripe_subscription_id', $subscription->id);
+								$user->setCustomField('stripe_current_plan', $app['msiof.stripe']['plans']['free']);
 								$app['user.manager']->update($user);
 					 });
 		  }

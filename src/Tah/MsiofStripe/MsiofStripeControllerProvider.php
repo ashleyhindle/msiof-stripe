@@ -48,7 +48,7 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 								data-image="/128x128.png"
 								data-currency="USD"
 								data-allowrememberme="false"
-								data-email="ashley@smellynose.com"
+								data-email="' . $app['user']->getEmail() . '"
 								data-panelLabel="Subscribe"
 								data-label="Subscribe"
 								>
@@ -74,21 +74,33 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 								\Stripe::setApiKey($app['msiof.stripe']['keys']['secret']);
 								$customerId = $app['user']->getCustomField('stripe_customer_id');
 								if (empty($customerId)) {
+										  /*
+											* They don't have a customerid somehow, so we need to make them one
+											*/
 										  $customer = \Stripe_Customer::create([
 													 'email' => $app['user']->getEmail(),
+													 'metadata' => [
+																'userid' => $app['user']->getId()
+													 ]
 										  ]);
+
+										  $subscription = $customer->subscriptions->create([
+													 "plan" => $app['msiof.stripe']['plans']['free']
+										  ]);
+
+										  $app['user']->setCustomField('stripe_subscription_id', $subscription->id);
 										  $app['user']->setCustomField('stripe_customer_id', $customer->id);
+										  $app['user']->setCustomField('stripe_current_plan', $app['msiof.stripe']['plans']['free']);
 										  $app['user.manager']->update($app['user']);
 										  $customerId = $customer->id;
 								}
 
 								try {
-										  $cu = \Stripe_Customer::retrieve($customerId);
-										  $result = $cu->subscriptions->create([
-													 "plan" => $app['msiof.stripe']['plan'],
-													 "card" => $request->get('stripeToken'),
-													 "quantity" => 26
-										  ]);
+										  $customer = \Stripe_Customer::retrieve($customerId);
+										  $subscription = $customer->subscriptions->retrieve($app['user']->getCustomField('stripe_subscription_id'));
+										  $subscription->plan = $app['msiof.stripe']['plans']['paid'];
+										  $subscription->card = $request->get('stripeToken');
+										  $result = $subscription->save();
 								} catch (Exception $e) {
 										  $app['session']->getFlashBag()->set('alert', 'Something went wrong.  Please get in touch - <a href="mailto:somethingwentwrong@myserverisonfire.com">somethingwentwrong@myserverisonfire.com</a>');
 
@@ -96,6 +108,7 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 								}
 
 								$subscriptionId = $result->id;
+								$app['user']->setCustomField('stripe_current_plan', 'paid');
 								$app['user']->setCustomField('stripe_subscription_id', $subscriptionId);
 								$app['user.manager']->update($app['user']);
 
