@@ -39,6 +39,10 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 										 return 'You aren\'t subscribed anyway, so you can\'t unsubscribe';
 								}
 
+								if (empty($app['user']->getCustomField('stripe_customer_id'))) {
+										  return 'You have no stripe customerid, so you can\'t unsubscribe';
+								}
+
 								try {
 										  $customer = \Stripe_Customer::retrieve($app['user']->getCustomField('stripe_customer_id'));
 										  $result = $customer->subscriptions->retrieve($app['user']->getCustomField('stripe_subscription_id_paid'))->cancel([
