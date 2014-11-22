@@ -56,7 +56,7 @@ class MsiofStripeServiceProvider implements ServiceProviderInterface
 								]);
 
 								$user->setCustomField('stripe_customer_id', $customer->id);
-								$user->setCustomField('stripe_subscription_id', $subscription->id);
+								$user->setCustomField('stripe_subscription_id_free', $subscription->id);
 								$user->setCustomField('stripe_current_plan', $app['msiof.stripe']['plans']['free']);
 								$app['user.manager']->update($user);
 					 });
