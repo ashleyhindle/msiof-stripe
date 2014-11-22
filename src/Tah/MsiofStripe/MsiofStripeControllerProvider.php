@@ -41,8 +41,11 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 
 								try {
 										  $customer = \Stripe_Customer::retrieve($app['user']->getCustomField('stripe_customer_id'));
-										  $result = $customer->subscriptions->retrieve($app['user']->getCustomField('stripe_subscription_id_paid'))->cancel();
-										  $app['user']->setCustomField('stripe_subscription_awaiting_cancellation', true);
+										  $result = $customer->subscriptions->retrieve($app['user']->getCustomField('stripe_subscription_id_paid'))->cancel([
+													 'at_period_end' => true
+										  ]);
+										  $app['user']->setCustomField('stripe_subscription_awaiting_cancellation', 1);
+										  $app['user.manager']->update($app['user']);
 								} catch (Exception $e) {
 										  return 'Something went wrong, sorry';
 								}
