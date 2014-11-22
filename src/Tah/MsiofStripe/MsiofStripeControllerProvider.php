@@ -64,19 +64,22 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 										  return $app->redirect('user.login');
 								}
 
-								\Stripe::setApiKey($app['msiof.stripe']['keys']['secret']);
-								$customerId = $app['user']->getCustomField('stripe_customer_id');
-								if (empty($customerId)) {
-										  $app['session']->getFlashBag()->set('alert', 'Something went wrong.  Please get in touch - <a href="mailto:somethingwentwrong@myserverisonfire.com">somethingwentwrong@myserverisonfire.com</a>');
-
-										  return $app->redirect('/');
-								}
-
 								$subscriptionId = $app['user']->getCustomField('stripe_subscription_id');
 								if (!empty($subscriptionId)) {
 										  $app['session']->getFlashBag()->set('alert', 'You are already subscribed, what ya playing at?');
 
 										  return $app->redirect('/dashboard');
+								}
+
+								\Stripe::setApiKey($app['msiof.stripe']['keys']['secret']);
+								$customerId = $app['user']->getCustomField('stripe_customer_id');
+								if (empty($customerId)) {
+										  $customer = \Stripe_Customer::create([
+													 'email' => $app['user']->getEmail(),
+										  ]);
+										  $app['user']->setCustomField('stripe_customer_id', $customer->id);
+										  $app['user.manager']->update($app['user']);
+										  $customerId = $customer->id;
 								}
 
 								try {
