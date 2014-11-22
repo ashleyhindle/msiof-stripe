@@ -56,7 +56,7 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 
 								$app['session']->getFlashBag()->set('alert-success', 'You are now unsubscribed, but why? :(');
 
-								return $app->redirect('/stripe/account');
+								return $app->redirect($app->url('msiof-stripe-account'));
 					 })->bind('msiof-stripe-unsubscribe');
 
 					 $controllers->get('/account', function (Application $app) {
@@ -94,7 +94,7 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 								';
 
 								return $form;
-					 })->bind('msiof-stripe-pay-form');
+					 })->bind('msiof-stripe-account');
 
 					 $controllers->post('/upgrade', function(Application $app, Request $request) {
 								if (!$app['user']) {
@@ -105,7 +105,7 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 								if (!empty($subscriptionId)) {
 										  $app['session']->getFlashBag()->set('alert', 'You are already subscribed, what ya playing at?');
 
-										  return $app->redirect('/dashboard');
+										  return $app->redirect($app->url('dashboard'));
 								}
 
 								\Stripe::setApiKey($app['msiof.stripe']['keys']['secret']);
@@ -155,11 +155,11 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 								} catch (Stripe_Error $e) {
 										  $app['session']->getFlashBag()->set('alert', 'Something went wrong.  Please get in touch at somethingwentwrong@myserverisonfire.com');
 
-										  return $app->redirect('/dashboard');
+										  return $app->redirect($app->url('dashboard'));
 								} catch (Exception $e) {
 										  $app['session']->getFlashBag()->set('alert', 'Something went wrong.  Please get in touch at somethingwentwrong@myserverisonfire.com');
 
-										  return $app->redirect('/dashboard');
+										  return $app->redirect($app->url('dashboard'));
 								}
 
 								$subscriptionId = $result->id;
@@ -171,7 +171,7 @@ class MsiofStripeControllerProvider implements ControllerProviderInterface
 
 								$app['session']->getFlashBag()->set('alert-success', 'You are now upgraded! Congrats!');
 
-								return $app->redirect('/stripe/account');
+								return $app->redirect($app->url('msiof-stripe-account'));
 					 })->bind('msiof-stripe-pay-post');
 
 					 $controllers->post('/webhook', function(Application $app, Request $request) {
